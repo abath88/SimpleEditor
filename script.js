@@ -11,6 +11,15 @@ function copy() {
     document.execCommand("copy")
 }
 
+document.getElementById("sel").addEventListener('mousedown',
+function sel(e) {
+    e.preventDefault()
+    let selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+}
+)
+
 function paste() {
     navigator.clipboard.readText().then(text =>{
         text = text.replace('\n', "<br>")
@@ -113,4 +122,3 @@ document.getElementById("editor")
         state.value += key
         editor.innerHTML = state.value
     })
-
