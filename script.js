@@ -122,3 +122,7 @@ document.getElementById("editor")
         state.value += key
         editor.innerHTML = state.value
     })
+
+
+    editor.getAttribute()
+    editor.add
