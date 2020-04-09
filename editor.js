@@ -1,7 +1,7 @@
 function Editor(settings) {
     let el = settings.el
     let placeholderTag = null
-    let cursor = null;
+    let activeNode = null;
 
     (function(){
         if(el.getAttribute("contenteditable") == null) {
@@ -16,15 +16,49 @@ function Editor(settings) {
     })();
 
     el.addEventListener('keydown', (e) => {
-        switch(e.key) {
-            case 'Enter': 
-                e.preventDefault()
-                let newEl = addTag()
-                let cursor = getCursor()
-                cursor.surroundContents(newEl)
-                createCursor(newEl)
-            default:
+        switch (e.key) {
+          case 'Enter':
+            e.preventDefault();
+            let newEl = addTag();
+            let cursor = getCursor();
+            let lContent = null;
+
+            if (cursor.startOffset < activeNode.textContent.length) {
+              lContent = activeNode.textContent.substring(
+                cursor.startOffset,
+                activeNode.textContent.length
+              );
+              activeNode.textContent = activeNode.textContent.substring(
+                0,
+                cursor.startOffset
+              );
+            } else {
+              lContent = '&nbsp';
+            }
+
+            cursor.setStartAfter(activeNode);
+            cursor.surroundContents(newEl);
+
+            newEl.innerHTML = lContent;
+            createCursor(newEl);
+            activeNode = newEl;
             break;
+          default:
+            break;
+        }
+    })
+
+    el.addEventListener('keyup', (e) => {
+        switch (e.key) {
+            case 'ArrowUp':
+            case 'ArrowDown':
+            case 'ArrowLeft':
+            case 'ArrowRight':
+                let newCursor = getCursor();
+                activeNode = newCursor.startContainer.parentElement;
+                break;
+            default:
+                break;
         }
     })
 
@@ -33,8 +67,9 @@ function Editor(settings) {
             e.preventDefault()
             el.innerHTML = ""
             let tagP = addTag()
-            tagP.innerHTML = "&nbsp"
+            activeNode = tagP;
             el.appendChild(tagP)
+            tagP.innerHTML = '&nbsp';
             createCursor(tagP)
         }
     })
@@ -48,6 +83,12 @@ function Editor(settings) {
             el.appendChild(placeholderTag)
         }
     })
+
+    el.addEventListener('click', (e) => {
+        let cursor = getCursor()
+        activeNode = cursor.startContainer.parentElement;
+    })
+
     return this
 }
 
@@ -60,6 +101,7 @@ var richTextEditor = new Editor(
 
 function addTag() {
     let el = document.createElement('p')
+    el.innerHTML = "&nbsp"
     return el
 }
 
@@ -84,8 +126,9 @@ function createCursor(el){
 
 /*
     var newEditor = new Editor({
-        el: document.getElementById("cos")
+        el: document.getElementById("editor"),
+        placeholder: "Wprowadź jakiś tekst"
     })
-*/
 
+*/
 //new
