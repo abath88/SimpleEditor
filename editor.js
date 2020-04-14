@@ -1,14 +1,35 @@
+
+
+
 function Editor(settings) {
+
+
+    let tags = ['p', 'h1', 'h2', 'h3', 'h4'];
     let el = settings.el
     let placeholderTag = null
     let activeNode = null;
+
+    for (let tag of tags) {
+      let div = document.createElement('div');
+      div.innerHTML = tag;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if(activeNode != null) {
+            let newEl = document.createElement(tag)
+            newEl.innerHTML = activeNode.innerHTML
+            document.getElementById('editor').replaceChild(newEl, activeNode)
+            activeNode = newEl
+        }
+      });
+      document.getElementById('tags').appendChild(div);
+    }
 
     (function(){
         if(el.getAttribute("contenteditable") == null) {
             el.setAttribute("contenteditable", "true")
         }
 
-        el.innerHTML = ""
+        el.innerHTML = '';
         placeholderTag = document.createElement('span')
         placeholderTag.textContent = settings.placeholder
         el.appendChild(placeholderTag)
@@ -33,17 +54,24 @@ function Editor(settings) {
                 cursor.startOffset
               );
             } else {
-              lContent = '&nbsp';
-              /* \u200B lub &#8203; */
+              lContent = '';
             }
 
-            cursor.setStartAfter(activeNode);
-            cursor.surroundContents(newEl);
-
             newEl.innerHTML = lContent;
+            insertAfter(newEl, activeNode); 
             createCursor(newEl);
             activeNode = newEl;
+
             break;
+
+            case 'Backspace':
+                let editor = document.getElementById('editor')
+                
+                if(editor.children.length == 1) {
+                    if (editor.children[0].textContent.length == 0) {
+                        e.preventDefault()
+                    }
+                }
           default:
             break;
         }
@@ -56,7 +84,9 @@ function Editor(settings) {
             case 'ArrowLeft':
             case 'ArrowRight':
                 let newCursor = getCursor();
-                activeNode = newCursor.startContainer.parentElement;
+                if (newCursor.startContainer.nodeName == '#text')
+                  activeNode = newCursor.startContainer.parentElement;
+                else activeNode = newCursor.startContainer;
                 break;
             default:
                 break;
@@ -70,16 +100,13 @@ function Editor(settings) {
             let tagP = addTag()
             activeNode = tagP;
             el.appendChild(tagP)
-            tagP.innerHTML = '&nbsp';
+            tagP.innerHTML = '';
             createCursor(tagP)
         }
     })
 
     el.addEventListener('blur', (e) => {
-        if(
-            el.children[0].textContent.length == 0 &&
-            el.children.length == 1
-        ){
+        if(el.children[0].textContent.length == 0 && el.children.length == 1){
             el.innerHTML = ""
             el.appendChild(placeholderTag)
         }
@@ -87,7 +114,10 @@ function Editor(settings) {
 
     el.addEventListener('click', (e) => {
         let cursor = getCursor()
-        activeNode = cursor.startContainer.parentElement;
+        if(cursor.startContainer.nodeName == '#text')
+            activeNode = cursor.startContainer.parentElement;
+        else 
+            activeNode = cursor.startContainer
     })
 
     return this
@@ -100,9 +130,13 @@ var richTextEditor = new Editor(
     }
 )
 
+function insertAfter(newEl, after) {
+    after.parentElement.insertBefore(newEl, after.nextSibling);
+}
+
 function addTag() {
     let el = document.createElement('p')
-    el.innerHTML = "&nbsp"
+    el.innerHTML = '';
     return el
 }
 
