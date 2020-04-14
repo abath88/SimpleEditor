@@ -34,6 +34,7 @@ function Editor(settings) {
               );
             } else {
               lContent = '&nbsp';
+              /* \u200B lub &#8203; */
             }
 
             cursor.setStartAfter(activeNode);
