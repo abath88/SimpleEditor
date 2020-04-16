@@ -1,169 +1,96 @@
-
-
-
 function Editor(settings) {
-
-
-    let tags = ['p', 'h1', 'h2', 'h3', 'h4'];
-    let el = settings.el
+    let editor = settings.editor
     let placeholderTag = null
-    let activeNode = null;
 
-    for (let tag of tags) {
-      let div = document.createElement('div');
-      div.innerHTML = tag;
-      div.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        if(activeNode != null) {
-            let newEl = document.createElement(tag)
-            newEl.innerHTML = activeNode.innerHTML
-            document.getElementById('editor').replaceChild(newEl, activeNode)
-            activeNode = newEl
-        }
-      });
-      document.getElementById('tags').appendChild(div);
+    {
+        editor.setAttribute('contenteditable', 'true');
+        editor.innerHTML = '';
+        placeholderTag = document.createElement('span');
+        placeholderTag.textContent = settings.placeholder;
+        editor.appendChild(placeholderTag);
     }
 
-    (function(){
-        if(el.getAttribute("contenteditable") == null) {
-            el.setAttribute("contenteditable", "true")
-        }
+    {   
+        /* SETUP TOOLBAR */
 
-        el.innerHTML = '';
-        placeholderTag = document.createElement('span')
-        placeholderTag.textContent = settings.placeholder
-        el.appendChild(placeholderTag)
+        let fontSize = document.getElementById('font-size')
+        fontSize.addEventListener('input', (e) => {
+            console.log(window.getSelection().getRangeAt(0))
+        })
 
-    })();
+        for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
+            let div = document.createElement('div');
+            div.innerHTML = tag;
+            
+            div.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                let newEl = document.createElement(tag);
+                let cursor = window.getSelection().getRangeAt(0)
+                let cursorOffset = cursor.startOffset;
 
-    el.addEventListener('keydown', (e) => {
-        switch (e.key) {
-          case 'Enter':
-            e.preventDefault();
-            let newEl = addTag();
-            let cursor = getCursor();
-            let lContent = null;
-
-            if (cursor.startOffset < activeNode.textContent.length) {
-              lContent = activeNode.textContent.substring(
-                cursor.startOffset,
-                activeNode.textContent.length
-              );
-              activeNode.textContent = activeNode.textContent.substring(
-                0,
-                cursor.startOffset
-              );
-            } else {
-              lContent = '';
-            }
-
-            newEl.innerHTML = lContent;
-            insertAfter(newEl, activeNode); 
-            createCursor(newEl);
-            activeNode = newEl;
-
-            break;
-
-            case 'Backspace':
-                let editor = document.getElementById('editor')
-                
-                if(editor.children.length == 1) {
-                    if (editor.children[0].textContent.length == 0) {
-                        e.preventDefault()
-                    }
+                if(cursor.startContainer.nodeName == '#text'){
+                    newEl.innerHTML = cursor.startContainer.parentNode.innerHTML;
+                    editor.replaceChild(newEl, cursor.startContainer.parentNode);
+                } else {
+                    newEl.innerHTML = cursor.startContainer.innerHTML;
+                    editor.replaceChild(newEl, cursor.startContainer);
                 }
-          default:
-            break;
-        }
-    })
 
-    el.addEventListener('keyup', (e) => {
+                let range = new Range();
+                newEl.childNodes.length > 0 ?
+                    range.setStart(newEl.childNodes[0], cursorOffset) :
+                    range.setStart(newEl, cursorOffset)
+
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            });
+
+            document.getElementById('tags').appendChild(div);
+        }
+    }
+
+    editor.addEventListener('keydown', (e) => {
         switch (e.key) {
-            case 'ArrowUp':
-            case 'ArrowDown':
-            case 'ArrowLeft':
-            case 'ArrowRight':
-                let newCursor = getCursor();
-                if (newCursor.startContainer.nodeName == '#text')
-                  activeNode = newCursor.startContainer.parentElement;
-                else activeNode = newCursor.startContainer;
+            case 'Backspace':                
+                if(editor.children.length == 1 && editor.children[0].textContent.length == 0) {
+                        e.preventDefault()
+                }
                 break;
             default:
                 break;
         }
     })
 
-    el.addEventListener('focus', (e) => {
-        if(el.children[0] == placeholderTag) {
-            e.preventDefault()
-            el.innerHTML = ""
-            let tagP = addTag()
-            activeNode = tagP;
-            el.appendChild(tagP)
-            tagP.innerHTML = '';
-            createCursor(tagP)
+    editor.addEventListener('focus', (e) => {
+        if (editor.children[0] == placeholderTag) {
+            e.preventDefault();
+            editor.replaceChild(document.createElement('p'), placeholderTag);
+
+            let range = new Range();
+            range.setStart(editor.childNodes[0], 0);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
         }
     })
 
-    el.addEventListener('blur', (e) => {
-        if(el.children[0].textContent.length == 0 && el.children.length == 1){
-            el.innerHTML = ""
-            el.appendChild(placeholderTag)
-        }
-    })
-
-    el.addEventListener('click', (e) => {
-        let cursor = getCursor()
-        if(cursor.startContainer.nodeName == '#text')
-            activeNode = cursor.startContainer.parentElement;
-        else 
-            activeNode = cursor.startContainer
-    })
+    editor.addEventListener('blur', (e) => {
+      if (
+        editor.children.length == 1 &&
+        editor.children[0].textContent.length == 0
+      ) {
+        editor.replaceChild(placeholderTag, editor.children[0]);
+      }
+    });
 
     return this
 }
 
-var richTextEditor = new Editor(
-    {
-        el: document.getElementById("editor"),
-        placeholder: "Rozpocznij pisanie artykułu"
-    }
-)
+var richTextEditor = new Editor({
+  editor: document.getElementById('editor'),
+  placeholder: 'Rozpocznij pisanie artykułu',
+});
 
-function insertAfter(newEl, after) {
-    after.parentElement.insertBefore(newEl, after.nextSibling);
+
+function Toolbar() {
+
 }
-
-function addTag() {
-    let el = document.createElement('p')
-    el.innerHTML = '';
-    return el
-}
-
-function getCursor() {
-    let selection = window.getSelection()
-    let cursor = selection.getRangeAt(0)
-
-    return cursor
-}
-
-/* el oznacza element w którym będzie kursor */
-function createCursor(el){
-    let selection = getSelection()
-    let range = new Range()
-    range.setStart(el, 0)
-    range.setEnd(el, 0)
-    selection.removeAllRanges()
-    selection.addRange(range)
-}
-
-
-
-/*
-    var newEditor = new Editor({
-        el: document.getElementById("editor"),
-        placeholder: "Wprowadź jakiś tekst"
-    })
-
-*/
-//new
