@@ -1,6 +1,9 @@
+document.execCommand('defaultParagraphSeparator', false, 'p');
+
 function Editor(settings) {
     let editor = settings.editor
     let placeholderTag = null
+    let cursor = { el: null, offset: 0 }
 
     {
         editor.setAttribute('contenteditable', 'true');
@@ -14,9 +17,24 @@ function Editor(settings) {
         /* SETUP TOOLBAR */
 
         let fontSize = document.getElementById('font-size')
+        fontSize.value = 16
+
         fontSize.addEventListener('input', (e) => {
-            console.log(window.getSelection().getRangeAt(0))
+            editor.focus()
+            let range = new Range()
+            range.setStart(cursor.el, cursor.offset);
+
+            window.getSelection().removeAllRanges()
+            window.getSelection().addRange(range)
+
+            if(cursor.el.nodeName == '#text'){
+                cursor.el.parentElement.style.fontSize = `${e.target.value}px`
+            }else {
+                cursor.el.style.fontSize = `${e.target.value}px`;
+            }
         })
+
+        
 
         for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
             let div = document.createElement('div');
@@ -49,16 +67,26 @@ function Editor(settings) {
         }
     }
 
+    /* END SETUP TOOLBAR */ 
+    editor.addEventListener('click', (e) => {
+        cursor.el = window.getSelection().getRangeAt(0).startContainer;
+        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
+    })
+
     editor.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'Backspace':                
                 if(editor.children.length == 1 && editor.children[0].textContent.length == 0) {
                         e.preventDefault()
                 }
-                break;
             default:
                 break;
         }
+    })
+
+    editor.addEventListener('keyup', (e) => {
+        cursor.el = window.getSelection().getRangeAt(0).startContainer;
+        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
     })
 
     editor.addEventListener('focus', (e) => {
@@ -89,8 +117,3 @@ var richTextEditor = new Editor({
   editor: document.getElementById('editor'),
   placeholder: 'Rozpocznij pisanie artykułu',
 });
-
-
-function Toolbar() {
-
-}
