@@ -34,7 +34,54 @@ function Editor(settings) {
             }
         })
 
-        
+        let fonts = [
+          'Calibri',
+          'Bebas Neue',
+          'DejaVu Serif',
+          'Impact',
+          'Segoe Script',
+          'Comic Sans MS',
+          'System',
+        ];
+
+        let currentFont = 'Calibri';
+        let fontList = document.getElementById('font-list');
+
+        for (let font of fonts) {
+          let fontItem = document.createElement('div');
+          fontItem.setAttribute('class', 'font-item');
+          let fontName = document.createElement('h1');
+          fontName.style.fontFamily = font;
+          fontName.textContent = font;
+          fontItem.appendChild(fontName);
+
+          fontItem.addEventListener('mouseover', () => {
+                if (cursor.el.nodeName == '#text') {
+                    cursor.el.parentElement.style.fontFamily = font;
+                } else {
+                    cursor.el.style.fontFamily = font;
+                }
+          });
+
+          fontItem.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            currentFont = font;
+            let currFont = document.getElementById('font-current');
+            currFont.children[0].style.fontFamily = font;
+            currFont.children[0].textContent = font;
+          });
+
+          fontList.appendChild(fontItem);
+        }
+
+        fontList.addEventListener('mouseleave', () => {
+            if (cursor.el.nodeName == '#text') {
+                cursor.el.parentElement.style.fontFamily = currentFont;
+            } else {
+                cursor.el.style.fontFamily = currentFont;
+            }
+        });
+
 
         for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
             let div = document.createElement('div');
@@ -48,9 +95,12 @@ function Editor(settings) {
 
                 if(cursor.startContainer.nodeName == '#text'){
                     newEl.innerHTML = cursor.startContainer.parentNode.innerHTML;
-                    editor.replaceChild(newEl, cursor.startContainer.parentNode);
+                    newEl.style.cssText = cursor.startContainer.parentElement.style.cssText
+                    console.log(newEl.style.cssText);
+                    editor.replaceChild(newEl, cursor.startContainer.parentElement);
                 } else {
                     newEl.innerHTML = cursor.startContainer.innerHTML;
+                    newEl.style.cssText = cursor.startContainer.style.cssText
                     editor.replaceChild(newEl, cursor.startContainer);
                 }
 
@@ -66,6 +116,36 @@ function Editor(settings) {
             document.getElementById('tags').appendChild(div);
         }
     }
+
+
+    let bold = document.getElementById("bold")
+    bold.addEventListener('click', (e) => {
+        let range = window.getSelection().getRangeAt(0)
+        /* 
+
+            <div id="editor">
+                <p>start</p>  -> startContainer
+                <p><span style="font-weight: bold;">bbb</span></p>  -> startContainer.nextSibiling
+                <p>ccc</p>  -> startContainer.nextSibiling.nextSibiling
+                <p>end</p>  -> endContainer
+            </div>
+        */
+
+        let currentEl = range.startContainer
+        
+
+        while (currentEl !== range.endContainer.parentElement) {
+            if (currentEl.nodeName == '#text') {
+                currentEl = currentEl.parentElement.nextElementSibling;
+            } else {
+                currentEl = currentEl.nextElementSibling;
+            }
+
+            currentEl.innerHTML = `<span style="font-weight: bold;">${currentEl.innerHTML}</span>`;
+            console.log(range.endContainer);
+        }
+
+    })
 
     /* END SETUP TOOLBAR */ 
     editor.addEventListener('click', (e) => {
