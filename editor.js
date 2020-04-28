@@ -1,10 +1,9 @@
-document.execCommand('defaultParagraphSeparator', false, 'p');
-
 function Editor(settings) {
     let editor = settings.editor
     let placeholderTag = null
     let cursor = { el: null, offset: 0 }
 
+/*   
     {
         editor.setAttribute('contenteditable', 'true');
         editor.innerHTML = '';
@@ -12,7 +11,7 @@ function Editor(settings) {
         placeholderTag.textContent = settings.placeholder;
         editor.appendChild(placeholderTag);
     }
-
+*/
     {   
         /* SETUP TOOLBAR */
 
@@ -89,28 +88,14 @@ function Editor(settings) {
             
             div.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                let newEl = document.createElement(tag);
-                let cursor = window.getSelection().getRangeAt(0)
-                let cursorOffset = cursor.startOffset;
 
-                if(cursor.startContainer.nodeName == '#text'){
-                    newEl.innerHTML = cursor.startContainer.parentNode.innerHTML;
-                    newEl.style.cssText = cursor.startContainer.parentElement.style.cssText
-                    console.log(newEl.style.cssText);
-                    editor.replaceChild(newEl, cursor.startContainer.parentElement);
-                } else {
-                    newEl.innerHTML = cursor.startContainer.innerHTML;
-                    newEl.style.cssText = cursor.startContainer.style.cssText
-                    editor.replaceChild(newEl, cursor.startContainer);
-                }
+                let selection = window.getSelection()
+                let node = selection.anchorNode
 
-                let range = new Range();
-                newEl.childNodes.length > 0 ?
-                    range.setStart(newEl.childNodes[0], cursorOffset) :
-                    range.setStart(newEl, cursorOffset)
+                while(!isElement(node)) node = node.parentElement
+                while(node.dataset.type != 'block') node = node.parentElement
 
-                window.getSelection().removeAllRanges();
-                window.getSelection().addRange(range);
+                node.replaceWith(element(tag, node.innerHTML))
             });
 
             document.getElementById('tags').appendChild(div);
@@ -142,7 +127,6 @@ function Editor(settings) {
             rangeClone.startContainer = startEl.children[0].childNodes[0];
             rangeClone.endContainer = startEl.children[0].childNodes[0];
             rangeClone.endOffset = rangeClone.endOffset - rangeClone.startOffset
-            
         } else {
             let offset = range.startOffset;
             while(startEl != endEl) {
@@ -204,6 +188,22 @@ function Editor(settings) {
                 if(editor.children.length == 1 && editor.children[0].textContent.length == 0) {
                         e.preventDefault()
                 }
+
+            case 'Enter':
+                e.preventDefault()
+                let selection = window.getSelection()
+                let block = null
+                if(selection.isCollapsed){
+                    block = elementWithChilds('p', [
+                      {
+                        type: 'span',
+                        content: '<br>',
+                        data: 'decorator',
+                      }
+                    ]);
+                }
+                console.log(block)
+                editor.appendChild(block)
             default:
                 break;
         }
@@ -242,3 +242,7 @@ var richTextEditor = new Editor({
   editor: document.getElementById('editor'),
   placeholder: 'Rozpocznij pisanie artykułu',
 });
+
+function isElement(node) {
+    return node.nodeType === Node.ELEMENT_NODE
+}
