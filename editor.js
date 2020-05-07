@@ -198,6 +198,8 @@ function Editor(settings) {
         let selection = editor.ownerDocument.getSelection()
         let range = document.createRange()
 
+        console.log("setSelection", newSelection)
+
         range.setStart(
             newSelection.startNode.childNodes[0], 
             newSelection.startOffset
@@ -223,6 +225,45 @@ function Editor(settings) {
             node.dataset.type === 'text')  
                 ? true : false
 
+/* OD TEGO MIEJSCA ZACZąĆ */
+    var addLine = (selection) => { 
+        let startNode = selection.startNode,
+          endNode = selection.endNode,
+          startOffset = selection.startOffset,
+          endOffset = selection.endOffset;
+
+        if(!(startNode == endNode && startOffset == endOffset)) {
+            deleteFromSelection(selection)
+            console.log('addLine', selection);
+        }
+
+        let blockSelection = startNode.parentElement
+        if(blockSelection.lastElementChild == startNode) {
+            if(startOffset == startNode.textContent.length) {
+                addEmptyLine(selection)
+            } else {
+
+            }
+        }else{
+            let currNode = startNode.nextElementSibling
+            let nodeList = []
+
+            while(currNode != null) {
+                nodeList.push(currNode)
+                let next = currNode.nextElementSibling
+                blockSelection.removeChild(currNode)
+                currNode = next
+            }
+            
+            let block = document.createElement('p')
+            block.dataset.type = 'text'
+            block.innerHTML = `<p data-type="block>${nodeList.map((node) => node.outerHTML).join() }</p>`
+            insertAfter(block, startNode.parentElement)
+
+
+        }
+    }
+
 
     var addEmptyLine = (selection) => {
         let block = elementWithChilds('p', [
@@ -235,6 +276,8 @@ function Editor(settings) {
 
         insertAfter(block, selection.startBlock);
 
+
+        console.log("addEmptyLine", selection)
         setSelection({
             startNode: block.childNodes[0],
             endNode: block.childNodes[0],
@@ -243,46 +286,62 @@ function Editor(settings) {
         })
     }
 
-
-    /* OD TEGO MIEJSCA ZACZAĆ */
-    /* !!!!! */
     var deleteFromSelection = (selection) => {
-          let currBlock =
+        let currBlock =
             selection.startBlock == selection.endBlock
-              ? selection.startBlock
-              : selection.startBlock.nextSibling;
+                ? selection.startBlock
+                : selection.startBlock.nextElementSibling;
 
-          while (currBlock != selection.endBlock) {
-            let next = currBlock.nextSibling;
+        
+        while (currBlock != selection.endBlock) {
+            let next = currBlock.nextElementSibling;
             editor.removeChild(currBlock);
             currBlock = next;
-          }
+        }
 
-          let currNode = selection.startNode.nextSibling;
-
-          if (selection.startBlock != selection.endBlock) {
-            while (currNode != null) {
-              let next = currNode.nextSibling;
-              selection.startBlock.removeChild(currNode);
-              currNode = next;
+        let currNode = 
+            selection.startNode == selection.endNode 
+                ? selection.startNode 
+                : selection.startNode.nextElementSibling 
+            
+        if (selection.startBlock == selection.endBlock ){
+            while (currNode != selection.endNode) {
+                let next = currNode.nextElementSibling
+                selection.startBlock.removeChild(currNode)
+                currNode = next
             }
-          }
+        } else {
+            let startNode = selection.startNode
+            let endNode = selection.startBlock.lastElementChild
 
-          currNode = selection.endBlock.firstChild;
-          while (currNode != selection.endNode) {
-            let next = currNode.nextSibling;
-            selection.endBlock.removeChild(currNode);
-            currNode = next;
-          }
+            let currNode = startNode.nextElementSibling
 
-          selection.startNode.textContent = selection.startNode.textContent.substring(
-            0,
-            selection.startOffset
-          );
-          selection.endNode.textContent = selection.endNode.textContent.substring(
-            selection.endOffset,
-            selection.endNode.textContent.length
-          );
+            while (currNode != null ){
+                let next = currNode.nextElementSibling;
+                selection.startBlock.removeChild(currNode);
+                currNode = next;
+            }
+
+            startNode = selection.endBlock.firstElementChild;
+            endNode = selection.endNode
+
+            currNode = startNode
+
+            while (currNode != endNode) {
+                let next = currNode.nextElementSibling;
+                selection.endBlock.removeChild(currNode);
+                currNode = next;
+            }
+        }
+
+        let startContent = selection.startNode.textContent
+        let endContent = selection.endNode.textContent
+
+        let startNode = selection.startNode
+        let endNode = selection.endNode
+
+        startNode.textContent = startContent.substring(0, selection.startOffset)
+        endNode.textContent = endContent.substring(selection.endOffset, endNode.textContent.length)
     }
     /* End Utils */
 
@@ -303,26 +362,25 @@ function Editor(settings) {
                 e.preventDefault()
                 let selection = getSelection()
 
-                if(!selection.isCollapsed)
+                if(!selection.isCollapsed){
                     deleteFromSelection(selection)
-                else 
                     setSelection({
-                        startNode: selection.startNode,
-                        endNode: selection.startNode,
-                        startOffset: selection.startNode.textContent.length,
-                        endOffset: selection.startNode.textContent.length,
+                      startNode: selection.startNode,
+                      endNode: selection.startNode,
+                      startOffset: selection.startNode.textContent.length,
+                      endOffset: selection.startNode.textContent.length,
                     });
-
-                addEmptyLine(getSelection())
+                    addLine(getSelection())
+                } else {
+                    addEmptyLine(getSelection());
+                }
+                
+                
             default:
                 break;
         }
     })
 
-    editor.addEventListener('keyup', (e) => {
-        cursor.el = window.getSelection().getRangeAt(0).startContainer;
-        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
-    })
 
     editor.addEventListener('focus', (e) => {
         if (editor.children[0] == placeholderTag) {
